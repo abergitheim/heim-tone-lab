@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>HEIM.Tone.lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@300;400;500;700&family=Chivo+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ac:#FFB020;
+  --ac-dark:color-mix(in srgb, var(--ac) 70%, #000);
+  --bg:#0A0C09;
+  --panel:#0D110C;
+  --line:#223021;
+  --grid:#182417;
+  --tx:#E6F0E2;
+  --tx2:#7C8C77;
+  --tx-dis:#556052;
+  --on-ac:#0A0C09;
+  --mono:'Chivo Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans:'Chivo', system-ui, -apple-system, sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:#000;
+  font-family:var(--sans);
+  color:var(--tx);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;
+}
+.app{
+  width:100%;
+  max-width:390px;
+  height:100dvh;
+  background:var(--bg);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+/* Gerätrahmen nur auf grossen Screens (Desktop-Vorschau) */
+@media (min-width:480px) and (min-height:900px){
+  .app{
+    height:844px;
+    border-radius:44px;
+    border:1px solid var(--line);
+    box-shadow:0 0 0 8px #000, 0 30px 80px rgba(0,0,0,.8);
+  }
+}
+
+/* ---------- Statusleiste + Kopf ---------- */
+.status{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 24px 6px;
+  font-family:var(--mono);font-size:13px;color:var(--tx2);
+}
+.status .icons{display:flex;align-items:center;gap:8px}
+.status .dots{letter-spacing:1px;font-size:9px}
+.status .bat{display:inline-block;width:5px;height:11px;border-radius:2px;background:var(--tx2)}
+header{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:6px 20px 12px;
+  border-bottom:1px solid var(--line);
+}
+header h1{
+  font-family:var(--mono);font-size:13px;font-weight:700;
+  letter-spacing:2px;color:var(--ac);
+}
+header .meta{font-family:var(--mono);font-size:12px;color:var(--tx2);letter-spacing:1px}
+
+/* ---------- Content-Grid ---------- */
+.content{
+  flex:1;
+  display:flex;flex-direction:column;gap:12px;
+  padding:8px 20px 20px;
+  min-height:0;
+  overflow-y:auto;
+}
+.content>*{flex-shrink:0}  /* Panels nie zusammenquetschen */
+
+/* ---------- Mess-Display ---------- */
+.scope{
+  position:relative;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:16px 20px 0;
+  overflow:hidden;
+}
+.scope::before{
+  content:"";position:absolute;inset:0;opacity:.6;pointer-events:none;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:28px 28px;
+}
+.scope>*{position:relative}
+.readout{
+  display:flex;justify-content:space-between;align-items:flex-end;
+}
+.note{
+  font-family:var(--mono);font-weight:700;font-size:62px;line-height:.95;
+  color:var(--ac);
+  text-shadow:0 0 22px color-mix(in srgb, var(--ac) 55%, transparent);
+  font-variant-numeric:tabular-nums;
+}
+.freq{
+  font-family:var(--mono);font-weight:700;font-size:34px;line-height:1;
+  color:var(--ac);
+  text-shadow:0 0 16px color-mix(in srgb, var(--ac) 45%, transparent);
+  font-variant-numeric:tabular-nums;
+}
+.freq small{font-size:16px;font-weight:700}
+#freqEdit{
+  font-family:var(--mono);font-weight:700;font-size:34px;line-height:1;
+  color:var(--ac);background:transparent;border:none;
+  border-bottom:2px solid var(--ac);
+  width:5.5ch;text-align:right;padding:0;margin:0;
+  font-variant-numeric:tabular-nums;
+  -webkit-user-select:text;user-select:text;
+  outline:none;-webkit-appearance:none;appearance:none;
+  caret-color:var(--ac);
+}
+.trace{display:block;width:100%;height:72px;margin:6px 0 2px}
+.scope-foot{
+  display:flex;justify-content:space-between;align-items:baseline;
+  border-top:1px solid var(--line);
+  padding:12px 0 14px;
+  font-family:var(--mono);font-variant-numeric:tabular-nums;
+}
+.scope-foot .lbl{font-size:11px;color:var(--tx2);letter-spacing:1px;margin-right:8px}
+.scope-foot .soll{font-size:16px;font-weight:500;color:var(--tx)}
+.scope-foot .delta{font-size:16px;font-weight:700;color:var(--ac)}
+
+/* ---------- Frequenz-Scrollrad ---------- */
+.freqrow{
+  display:flex;align-items:center;gap:12px;
+  background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;
+  padding:2px 14px;
+}
+.freqrow .lbl{
+  flex:0 0 auto;
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--tx2);
+}
+#dial{
+  flex:1;min-width:0;height:48px;display:block;
+  touch-action:none;cursor:ew-resize;
+}
+
+/* ---------- Oktav-Auswahl ---------- */
+.octrow{display:flex;align-items:center;gap:8px}
+.octrow .lbl{
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--tx2);
+  flex:0 0 auto;margin-right:2px;
+}
+.octcells{display:flex;gap:6px;flex:1}
+.oct{
+  flex:1;height:44px;
+  border:1px solid var(--line);border-radius:3px;
+  background:transparent;
+  font-family:var(--mono);font-size:15px;font-weight:500;color:var(--tx2);
+  cursor:pointer;
+  font-variant-numeric:tabular-nums;
+}
+.oct.edge{color:var(--tx-dis)}
+.oct.on{
+  background:var(--ac);border-color:var(--ac);
+  color:var(--on-ac);font-weight:700;
+  box-shadow:0 0 14px color-mix(in srgb, var(--ac) 40%, transparent);
+}
+
+/* ---------- Klaviatur ---------- */
+.kbd{
+  position:relative;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:8px;
+  height:156px;
+}
+.whites{display:flex;gap:2px;height:100%}
+.wkey{
+  flex:1;position:relative;
+  border:none;border-radius:0 0 5px 5px;
+  background:linear-gradient(#DDE7D8, #B9C7B3);
+  cursor:pointer;
+  font-family:var(--mono);font-size:9px;font-weight:500;color:#2A3327;
+  display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:8px;
+}
+.wkey.on{
+  background:linear-gradient(var(--ac), var(--ac-dark));
+  color:var(--on-ac);font-weight:700;
+  box-shadow:0 0 18px color-mix(in srgb, var(--ac) 55%, transparent);
+}
+.blacks{position:absolute;left:8px;right:8px;top:8px;height:60%;pointer-events:none}
+.bkey{
+  position:absolute;top:0;width:24px;height:100%;
+  margin-left:-12px;
+  border:1px solid #000;border-radius:0 0 4px 4px;
+  background:linear-gradient(#1A2418, #050705);
+  cursor:pointer;pointer-events:auto;
+}
+.bkey.on{
+  background:linear-gradient(var(--ac), var(--ac-dark));
+  border-color:var(--ac-dark);
+  box-shadow:0 0 14px color-mix(in srgb, var(--ac) 55%, transparent);
+}
+
+/* ---------- Wellenform-Wähler ---------- */
+.waves{display:flex;flex-direction:column;gap:8px}
+.wrow{
+  display:flex;align-items:center;gap:12px;
+  background:var(--panel);
+  border:1px solid var(--line);border-radius:6px;
+  padding:6px 14px;
+  min-height:40px;
+}
+.wrow .glyph{flex:0 0 34px;color:var(--tx2);display:flex}
+.wrow .name{
+  flex:0 0 84px;
+  font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:1px;color:var(--tx);
+}
+.wrow .pct{
+  flex:0 0 44px;text-align:right;
+  font-family:var(--mono);font-size:14px;font-weight:700;color:var(--tx);
+  font-variant-numeric:tabular-nums;
+}
+.wrow.hot{
+  border-color:var(--ac);
+  box-shadow:0 0 12px color-mix(in srgb, var(--ac) 18%, transparent);
+}
+.wrow.hot .glyph,.wrow.hot .pct{color:var(--ac)}
+
+/* ---------- Slider ---------- */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;
+  flex:1;height:24px;background:transparent;cursor:pointer;min-width:0;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:4px;border-radius:2px;
+  background:linear-gradient(to right, var(--fill,var(--tx2)) var(--p,50%), var(--grid) var(--p,50%));
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:24px;height:24px;margin-top:-10px;background:transparent;border:none;
+}
+input[type=range]::-moz-range-track{
+  height:4px;border-radius:2px;
+  background:linear-gradient(to right, var(--fill,var(--tx2)) var(--p,50%), var(--grid) var(--p,50%));
+}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparent;border:none}
+.wrow.hot input[type=range]{--fill:var(--ac)}
+
+/* Master-Regler: sichtbarer heller Knopf */
+.masterrow{display:flex;align-items:center;gap:12px;padding:0 2px}
+.masterrow .lbl{
+  flex:0 0 auto;
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--tx2);
+}
+.masterrow .pct{
+  flex:0 0 44px;text-align:right;
+  font-family:var(--mono);font-size:14px;font-weight:700;color:var(--ac);
+  font-variant-numeric:tabular-nums;
+}
+#master{--fill:var(--ac);height:28px}
+#master::-webkit-slider-runnable-track{height:6px;border-radius:3px}
+#master::-webkit-slider-thumb{
+  width:20px;height:20px;margin-top:-7px;border-radius:4px;
+  background:#E6F0E2;box-shadow:0 1px 4px rgba(0,0,0,.6);
+}
+#master::-moz-range-track{height:6px;border-radius:3px}
+#master::-moz-range-thumb{
+  width:20px;height:20px;border-radius:4px;background:#E6F0E2;
+  border:none;box-shadow:0 1px 4px rgba(0,0,0,.6);
+}
+
+/* ---------- Start/Stop ---------- */
+#power{
+  margin-top:auto;
+  height:64px;
+  border-radius:10px;
+  font-family:var(--mono);font-size:17px;font-weight:700;letter-spacing:4px;
+  cursor:pointer;
+}
+#power.running{
+  background:transparent;
+  border:2px solid var(--ac);
+  color:var(--ac);
+  box-shadow:0 0 18px color-mix(in srgb, var(--ac) 25%, transparent),
+             inset 0 0 14px color-mix(in srgb, var(--ac) 12%, transparent);
+}
+#power.stopped{
+  background:linear-gradient(var(--ac), var(--ac-dark));
+  border:2px solid var(--ac);
+  color:var(--on-ac);
+  box-shadow:0 0 22px color-mix(in srgb, var(--ac) 35%, transparent);
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="status">
+    <span id="clock">9:41</span>
+    <span class="icons"><span class="dots">●●●</span><span class="bat"></span></span>
+  </div>
+
+  <header>
+    <h1>HEIM.TONE.LAB</h1>
+    <span class="meta">v1.0 · REC</span>
+  </header>
+
+  <div class="content">
+
+    <section class="scope">
+      <div class="readout">
+        <span class="note" id="noteName">A3</span>
+        <span class="freq"><span id="freqVal">220</span><small>Hz</small></span>
+      </div>
+      <canvas class="trace" id="trace"></canvas>
+      <div class="scope-foot">
+        <span><span class="lbl">SOLL</span><span class="soll" id="sollVal">220,00 Hz</span></span>
+        <span><span class="lbl">Δ</span><span class="delta" id="deltaVal">+0 ct</span></span>
+      </div>
+    </section>
+
+    <section class="freqrow">
+      <span class="lbl">FREQ</span>
+      <canvas id="dial"></canvas>
+    </section>
+
+    <section class="octrow">
+      <span class="lbl">OCT</span>
+      <div class="octcells" id="octcells"></div>
+    </section>
+
+    <section class="kbd">
+      <div class="whites" id="whites"></div>
+      <div class="blacks" id="blacks"></div>
+    </section>
+
+    <section class="waves" id="waves"></section>
+
+    <section class="masterrow">
+      <span class="lbl">MASTER</span>
+      <input type="range" id="master" min="0" max="100" value="75">
+      <span class="pct" id="masterPct">75%</span>
+    </section>
+
+    <button id="power" class="stopped">▶&nbsp;&nbsp;START</button>
+
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ================= Konfiguration ================= */
+const A4 = 440;            // Kammerton, konfigurierbar
+const N_HARM = 64;         // Harmonische für PeriodicWave
+
+/* ================= Zustand =================
+   Die Frequenz ist die einzige Quelle der Wahrheit.
+   Tonmodus (Klaviatur/Oktave) und Frequenzmodus (Scrollrad)
+   setzen beide nur state.freq; alles andere wird abgeleitet. */
+const state = {
+  freq: 220,               // Hz (A3)
+  viewOct: 3,              // sichtbare Klaviatur-Oktave (folgt der Frequenz)
+  weights: { sine: 60, tri: 30, saw: 10 },
+  hotWave: 'sine',         // zuletzt angefasste Wellenform-Zeile
+  master: 75,
+  playing: false,
+};
+
+const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const WHITE_OFFSETS = [0,2,4,5,7,9,11,12,14];        // C D E F G A B C' D'
+const BLACK_OFFSETS = [1,3,6,8,10,13];               // C# D# F# G# A# C#'
+const BLACK_POS = [11.11,22.22,44.44,55.55,66.66,88.88]; // % der Breite
+
+/* ================= Formatierung (dt. Komma) ================= */
+const de = (x, d) => x.toFixed(d).replace('.', ',');
+
+/* ================= Tonhöhen-Mathematik ================= */
+const freqOfMidi = m => A4 * Math.pow(2, (m - 69) / 12);
+const midiOfFreq = f => 69 + 12 * Math.log2(f / A4);
+const MIDI_MIN = 12;                                 // C0
+const FREQ_MIN = freqOfMidi(MIDI_MIN);               // ≈ 16,35 Hz
+const FREQ_MAX = 20000;                              // Hörgrenze
+const clampFreq = f => Math.min(FREQ_MAX, Math.max(FREQ_MIN, f));
+
+/* ================= DOM-Aufbau ================= */
+const $ = id => document.getElementById(id);
+
+/* Oktaven 0–8 */
+const octEls = [];
+for (let o = 0; o <= 8; o++){
+  const b = document.createElement('button');
+  b.className = 'oct' + ((o === 0 || o >= 7) ? ' edge' : '');
+  b.textContent = o;
+  b.addEventListener('pointerdown', () => {
+    const m = Math.round(midiOfFreq(state.freq));
+    state.viewOct = o;
+    state.freq = freqOfMidi(12 * (o + 1) + (m % 12));  // Notenklasse behalten, Oktave wechseln
+    onPitchChange();
+  });
+  $('octcells').appendChild(b);
+  octEls.push(b);
+}
+
+/* Klaviatur */
+const whiteEls = [], blackEls = [];
+WHITE_OFFSETS.forEach(off => {
+  const k = document.createElement('button');
+  k.className = 'wkey';
+  k.addEventListener('pointerdown', () => {
+    state.freq = freqOfMidi(12 * (state.viewOct + 1) + off);
+    onPitchChange();
+  });
+  $('whites').appendChild(k);
+  whiteEls.push(k);
+});
+BLACK_OFFSETS.forEach((off, i) => {
+  const k = document.createElement('button');
+  k.className = 'bkey';
+  k.style.left = BLACK_POS[i] + '%';
+  k.addEventListener('pointerdown', () => {
+    state.freq = freqOfMidi(12 * (state.viewOct + 1) + off);
+    onPitchChange();
+  });
+  $('blacks').appendChild(k);
+  blackEls.push(k);
+});
+
+/* Wellenform-Zeilen */
+const GLYPHS = {
+  sine: '<svg width="34" height="18" viewBox="0 0 34 18" fill="none"><path d="M1 9 Q 5.5 1, 9.5 9 T 18 9 T 26.5 9 T 33 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  tri:  '<svg width="34" height="18" viewBox="0 0 34 18" fill="none"><path d="M1 13 L 6 5 L 12 13 L 18 5 L 24 13 L 30 5 L 33 9" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+  saw:  '<svg width="34" height="18" viewBox="0 0 34 18" fill="none"><path d="M1 13 L 11 5 L 11 13 L 21 5 L 21 13 L 31 5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>',
+};
+const WAVE_DEFS = [
+  { key: 'sine', label: 'SINUS' },
+  { key: 'tri',  label: 'DREIECK' },
+  { key: 'saw',  label: 'SÄGEZAHN' },
+];
+const waveRows = {};
+
+/* Auswahl direkt umschalten — ohne vollen Render, damit die
+   native Slider-Bedienung nicht unterbrochen wird. */
+function setHotWave(key){
+  if (state.hotWave === key) return;
+  state.hotWave = key;
+  WAVE_DEFS.forEach(w => waveRows[w.key].classList.toggle('hot', w.key === key));
+}
+WAVE_DEFS.forEach(w => {
+  const row = document.createElement('div');
+  row.className = 'wrow';
+  row.innerHTML =
+    '<span class="glyph">' + GLYPHS[w.key] + '</span>' +
+    '<span class="name">' + w.label + '</span>' +
+    '<input type="range" min="0" max="100" value="' + state.weights[w.key] + '">' +
+    '<span class="pct"></span>';
+  const slider = row.querySelector('input');
+  row.addEventListener('pointerdown', () => setHotWave(w.key));
+  slider.addEventListener('input', () => {
+    setHotWave(w.key);
+    state.weights[w.key] = +slider.value;
+    onMixChange();
+  });
+  $('waves').appendChild(row);
+  waveRows[w.key] = row;
+});
+
+/* ================= Audio ================= */
+let ctx = null, osc = null, gate = null, masterGain = null;
+
+function ensureAudio(){
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  gate = ctx.createGain();
+  masterGain = ctx.createGain();
+  gate.connect(masterGain).connect(ctx.destination);
+  gate.gain.value = 0;
+  masterGain.gain.value = masterLevel();
+}
+
+function masterLevel(){
+  return Math.pow(state.master / 100, 2) * 0.9;
+}
+
+function buildWave(){
+  const { sine, tri, saw } = state.weights;
+  const total = sine + tri + saw;
+  if (total === 0) return null;
+  const real = new Float32Array(N_HARM + 1);
+  const imag = new Float32Array(N_HARM + 1);
+  for (let n = 1; n <= N_HARM; n++){
+    let b = 0;
+    if (n === 1) b += sine;
+    if (n % 2 === 1) b += tri * (8 / (Math.PI * Math.PI)) * Math.pow(-1, (n - 1) / 2) / (n * n);
+    b += saw * (2 / Math.PI) * Math.pow(-1, n + 1) / n;
+    imag[n] = b / total;
+  }
+  return ctx.createPeriodicWave(real, imag);
+}
+
+function applyWave(){
+  if (!ctx || !osc) return;
+  const wave = buildWave();
+  const t = ctx.currentTime;
+  if (wave){
+    osc.setPeriodicWave(wave);
+    gate.gain.setTargetAtTime(1, t, 0.02);
+  } else {
+    gate.gain.setTargetAtTime(0, t, 0.02); // Mischung 0 % → Stille
+  }
+}
+
+function start(){
+  ensureAudio();
+  ctx.resume();
+  osc = ctx.createOscillator();
+  osc.frequency.value = state.freq;
+  osc.connect(gate);
+  applyWave();
+  osc.start();
+  state.playing = true;
+}
+
+function stop(){
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  gate.gain.setTargetAtTime(0, t, 0.03);
+  const dying = osc;
+  osc = null;
+  if (dying) dying.stop(t + 0.25);
+  state.playing = false;
+}
+
+/* ================= Events / Rendering ================= */
+function onPitchChange(){
+  if (osc) osc.frequency.setTargetAtTime(state.freq, ctx.currentTime, 0.01);
+  render();
+}
+function onMixChange(){
+  applyWave();
+  render();
+}
+
+$('master').addEventListener('input', e => {
+  state.master = +e.target.value;
+  if (masterGain) masterGain.gain.setTargetAtTime(masterLevel(), ctx.currentTime, 0.02);
+  render();
+});
+
+$('power').addEventListener('click', () => {
+  if (state.playing) stop(); else start();
+  render();
+});
+
+function render(){
+  /* Alles aus state.freq ableiten: nächste Note = SOLL, Abstand = Δ ct */
+  const f = state.freq;
+  const m = Math.round(midiOfFreq(f));
+  const soll = freqOfMidi(m);
+  const cents = Math.round(1200 * Math.log2(f / soll));
+  const noteOct = Math.floor(m / 12) - 1;
+  const s = m % 12;
+
+  /* Display */
+  $('noteName').textContent = NAMES[s] + noteOct;
+  $('freqVal').textContent = Math.abs(f - Math.round(f)) < 0.05 ? String(Math.round(f)) : de(f, 1);
+  $('sollVal').textContent = de(soll, 2) + ' Hz';
+  $('deltaVal').textContent = (cents >= 0 ? '+' : '−') + Math.abs(cents) + ' ct';
+
+  /* Live-Nachführung: Klaviaturansicht folgt der Frequenz.
+     C/C#/D der Folgeoktave sind auf der aktuellen Ansicht noch sichtbar. */
+  if (!(noteOct === state.viewOct || (noteOct === state.viewOct + 1 && s <= 2))){
+    state.viewOct = Math.min(8, Math.max(0, noteOct));
+  }
+  const activeOff = m - 12 * (state.viewOct + 1);
+
+  /* Oktaven */
+  octEls.forEach((b, o) => b.classList.toggle('on', o === state.viewOct));
+
+  /* Tasten */
+  WHITE_OFFSETS.forEach((off, i) => {
+    whiteEls[i].textContent = NAMES[off % 12] + (state.viewOct + Math.floor(off / 12));
+    whiteEls[i].classList.toggle('on', off === activeOff);
+  });
+  BLACK_OFFSETS.forEach((off, i) => blackEls[i].classList.toggle('on', off === activeOff));
+
+  /* Wellenform-Zeilen: zuletzt angefasste Zeile = Akzent */
+  WAVE_DEFS.forEach(w => {
+    const row = waveRows[w.key];
+    const v = state.weights[w.key];
+    row.classList.toggle('hot', w.key === state.hotWave);
+    row.querySelector('.pct').textContent = v + '%';
+    const s = row.querySelector('input');
+    if (+s.value !== v) s.value = v;   // laufenden Drag nie durch Rückschreiben stören
+    s.style.setProperty('--p', v + '%');
+  });
+
+  /* Master */
+  $('masterPct').textContent = state.master + '%';
+  $('master').style.setProperty('--p', state.master + '%');
+
+  /* Power-Button */
+  const p = $('power');
+  p.className = state.playing ? 'running' : 'stopped';
+  p.innerHTML = state.playing ? '■&nbsp;&nbsp;STOP' : '▶&nbsp;&nbsp;START';
+
+  drawTrace();
+  drawDial();
+}
+
+/* ================= Frequenz-Scrollrad ================= */
+const dial = $('dial');
+const dg = dial.getContext('2d');
+const CPP = 3;   // Cents pro Pixel
+const TICK = 25; // Feinteilung in Cents
+
+function drawDial(){
+  const dpr = window.devicePixelRatio || 1;
+  const w = dial.clientWidth, h = dial.clientHeight;
+  if (!w) return;
+  if (dial.width !== w * dpr){ dial.width = w * dpr; dial.height = h * dpr; }
+  dg.setTransform(dpr, 0, 0, dpr, 0, 0);
+  dg.clearRect(0, 0, w, h);
+
+  const ac = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim();
+  const center = 1200 * Math.log2(state.freq / FREQ_MIN);  // Cents ab C0
+  const span = w * CPP;
+  const maxCents = 1200 * Math.log2(FREQ_MAX / FREQ_MIN);
+
+  /* Skala: oben Frequenz (Hz), unten Ton — Striche dazwischen */
+  const TOP = 13, BOT = h - 14;
+  dg.font = '8px "Chivo Mono", monospace';
+  dg.textAlign = 'center';
+  const first = Math.ceil((center - span / 2) / TICK) * TICK;
+  for (let c = first; c <= center + span / 2; c += TICK){
+    if (c < 0 || c > maxCents) continue;
+    const x = w / 2 + (c - center) / CPP;
+    const semi = c % 100 === 0;
+    dg.strokeStyle = semi ? '#7C8C77' : '#223021';
+    dg.lineWidth = 1;
+    dg.beginPath();
+    dg.moveTo(x, semi ? TOP : TOP + 4);
+    dg.lineTo(x, semi ? BOT : BOT - 4);
+    dg.stroke();
+    if (semi){
+      const midi = MIDI_MIN + c / 100;
+      const nm = NAMES[midi % 12];
+      if (nm.length === 1){  // nur Stammtöne beschriften
+        const fq = freqOfMidi(midi);
+        dg.fillStyle = '#7C8C77';
+        dg.fillText(fq < 100 ? de(fq, 1) : String(Math.round(fq)), x, 8);
+        dg.fillText(nm + (Math.floor(midi / 12) - 1), x, h - 3);
+      }
+    }
+  }
+
+  /* Nadel (Mitte = eingestellte Frequenz) */
+  dg.strokeStyle = ac;
+  dg.lineWidth = 2;
+  dg.shadowColor = ac;
+  dg.shadowBlur = 6;
+  dg.beginPath();
+  dg.moveTo(w / 2, TOP - 3);
+  dg.lineTo(w / 2, BOT + 3);
+  dg.stroke();
+  dg.shadowBlur = 0;
+}
+
+function nudgeCents(dc){
+  state.freq = clampFreq(state.freq * Math.pow(2, dc / 1200));
+  onPitchChange();
+}
+
+let dialDrag = false, dialX = 0;
+dial.addEventListener('pointerdown', e => {
+  dialDrag = true; dialX = e.clientX;
+  dial.setPointerCapture(e.pointerId);
+});
+dial.addEventListener('pointermove', e => {
+  if (!dialDrag) return;
+  const dx = e.clientX - dialX; dialX = e.clientX;
+  nudgeCents(-dx * CPP);       // Skala ziehen: nach links = höher
+});
+dial.addEventListener('pointerup', () => { dialDrag = false; });
+dial.addEventListener('pointercancel', () => { dialDrag = false; });
+dial.addEventListener('wheel', e => {
+  e.preventDefault();
+  nudgeCents((e.deltaY + e.deltaX) * 0.5);
+}, { passive: false });
+dial.addEventListener('dblclick', () => {
+  state.freq = freqOfMidi(Math.round(midiOfFreq(state.freq)));  // auf Note einrasten
+  onPitchChange();
+});
+
+/* ================= Frequenz-Direkteingabe (Doppelklick aufs Display) ================= */
+const freqBox = document.querySelector('.freq');
+let freqEditing = false;
+freqBox.addEventListener('dblclick', () => {
+  if (freqEditing) return;
+  freqEditing = true;
+  const label = $('freqVal');
+  const f = state.freq;
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.inputMode = 'decimal';
+  inp.id = 'freqEdit';
+  inp.value = Math.abs(f - Math.round(f)) < 0.05 ? String(Math.round(f)) : de(f, 1);
+  label.style.display = 'none';
+  freqBox.insertBefore(inp, label);
+  inp.focus();
+  inp.select();
+
+  let done = false;
+  const finish = apply => {
+    if (done) return;
+    done = true;
+    if (apply){
+      const v = parseFloat(inp.value.replace(',', '.').trim());
+      if (isFinite(v) && v > 0) state.freq = clampFreq(v);
+    }
+    inp.remove();
+    label.style.display = '';
+    freqEditing = false;
+    onPitchChange();   // Anzeige neu ableiten (Note, SOLL, Cent, Rad …)
+  };
+
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter'){ e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape'){ e.preventDefault(); finish(false); }
+  });
+  inp.addEventListener('blur', () => finish(true));
+});
+
+/* ================= Wellen-Trace ================= */
+const canvas = $('trace');
+const cx2 = canvas.getContext('2d');
+let phase = 0, rafId = null;
+
+function mixSample(t){
+  const { sine, tri, saw } = state.weights;
+  const total = sine + tri + saw;
+  if (total === 0) return 0;
+  const x = t - Math.floor(t);
+  const s = Math.sin(2 * Math.PI * x);
+  const tr = (2 / Math.PI) * Math.asin(Math.sin(2 * Math.PI * x));
+  const sw = 2 * (x - Math.floor(x + 0.5));
+  return (sine * s + tri * tr + saw * sw) / total;
+}
+
+function drawTrace(){
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w) return;
+  if (canvas.width !== w * dpr){ canvas.width = w * dpr; canvas.height = h * dpr; }
+  cx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cx2.clearRect(0, 0, w, h);
+
+  /* Peak der Mischung bestimmen, damit die Kurve das Fenster füllt */
+  let peak = 0;
+  for (let i = 0; i < 128; i++) peak = Math.max(peak, Math.abs(mixSample(i / 128)));
+  if (peak < 1e-6) peak = 1;
+
+  const cycles = 4, mid = h / 2, amp = (h / 2 - 6) / peak;
+  const ac = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim();
+
+  cx2.beginPath();
+  for (let px = 0; px <= w; px++){
+    const t = (px / w) * cycles + phase;
+    const y = mid - mixSample(t) * amp;
+    px === 0 ? cx2.moveTo(px, y) : cx2.lineTo(px, y);
+  }
+  cx2.strokeStyle = ac;
+  cx2.globalAlpha = state.playing ? 0.85 : 0.35;
+  cx2.lineWidth = 1.8;
+  cx2.shadowColor = ac;
+  cx2.shadowBlur = state.playing ? 8 : 0;
+  cx2.stroke();
+  cx2.globalAlpha = 1;
+  cx2.shadowBlur = 0;
+
+  if (state.playing){
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  } else if (rafId){
+    cancelAnimationFrame(rafId); rafId = null;
+  }
+}
+function tick(){
+  rafId = null;
+  phase = (phase + 0.012) % 1;
+  drawTrace();
+}
+window.addEventListener('resize', () => { drawTrace(); drawDial(); });
+
+/* ================= Uhr ================= */
+function clock(){
+  const d = new Date();
+  $('clock').textContent = d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+clock();
+setInterval(clock, 15000);
+
+render();
+</script>
+</body>
+</html>
