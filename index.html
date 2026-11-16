@@ -93,8 +93,8 @@ header .meta{font-family:var(--mono);font-size:11px;color:var(--tx2);letter-spac
 }
 .content>*{flex-shrink:0}  /* Panels nie zusammenquetschen */
 
-/* ---------- Mess-Display ---------- */
-.scope{
+/* ---------- Panels mit Raster (Ton + Stimme) ---------- */
+.scope,.mic{
   position:relative;
   background:var(--panel);
   border:1px solid var(--line);
@@ -102,14 +102,14 @@ header .meta{font-family:var(--mono);font-size:11px;color:var(--tx2);letter-spac
   padding:16px 20px 0;
   overflow:hidden;
 }
-.scope::before{
+.scope::before,.mic::before{
   content:"";position:absolute;inset:0;opacity:.6;pointer-events:none;
   background-image:
     linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size:28px 28px;
 }
-.scope>*{position:relative}
+.scope>*,.mic>*{position:relative}
 .readout{
   display:flex;justify-content:space-between;align-items:flex-end;
 }
@@ -137,16 +137,64 @@ header .meta{font-family:var(--mono);font-size:11px;color:var(--tx2);letter-spac
   outline:none;-webkit-appearance:none;appearance:none;
   caret-color:var(--ac);
 }
-.trace{display:block;width:100%;height:72px;margin:6px 0 2px}
 .scope-foot{
   display:flex;justify-content:space-between;align-items:baseline;
   border-top:1px solid var(--line);
+  margin-top:12px;
   padding:12px 0 14px;
   font-family:var(--mono);font-variant-numeric:tabular-nums;
 }
 .scope-foot .lbl{font-size:11px;color:var(--tx2);letter-spacing:1px;margin-right:8px}
 .scope-foot .soll{font-size:16px;font-weight:500;color:var(--tx)}
 .scope-foot .delta{font-size:16px;font-weight:700;color:var(--ac)}
+
+/* ---------- Stimme (Mikrofon-Tonhöhe) ---------- */
+.mic{padding:12px 20px 12px}
+.mic-head{
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--tx2);
+  margin-bottom:6px;
+}
+.mic-head .state{color:var(--ac)}
+.mic .note{font-size:46px}
+.mic .freq{font-size:26px;cursor:default}
+.mic .freq small{font-size:13px}
+.mic.off .note,.mic.off .freq,.mic.idle .note,.mic.idle .freq{color:var(--tx-dis);text-shadow:none}
+.mic.off .mic-head .state{color:var(--tx-dis)}
+.meter{
+  position:relative;height:14px;margin-top:10px;
+  border-radius:3px;background:var(--grid);
+}
+.meter .zone{
+  position:absolute;top:0;bottom:0;
+  background:color-mix(in srgb, var(--ac) 22%, transparent);
+}
+.meter .mid{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--tx2)}
+.meter .needle{
+  position:absolute;left:50%;top:-4px;bottom:-4px;width:3px;margin-left:-1.5px;
+  border-radius:2px;background:var(--ac);
+  box-shadow:0 0 8px var(--ac);
+  opacity:0;transition:left .08s linear;
+}
+.meter.live .needle{opacity:1}
+.meter-scale{
+  display:flex;justify-content:space-between;align-items:baseline;
+  margin-top:5px;
+  font-family:var(--mono);font-size:10px;color:var(--tx2);
+  font-variant-numeric:tabular-nums;
+}
+.meter-scale .ct{font-size:13px;font-weight:700;color:var(--ac)}
+.cmp{
+  margin-top:10px;padding-top:9px;
+  border-top:1px solid var(--line);
+  min-height:28px;
+  font-family:var(--mono);font-size:13px;letter-spacing:.5px;color:var(--tx2);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cmp .lbl{font-size:11px;letter-spacing:1px;color:var(--tx2);margin-right:8px}
+.cmp .res{color:var(--tx);font-weight:700}
+.cmp.hit .res{color:var(--ac);text-shadow:0 0 10px color-mix(in srgb, var(--ac) 45%, transparent)}
 
 /* ---------- Frequenz-Scrollrad ---------- */
 .freqrow{
@@ -186,18 +234,26 @@ header .meta{font-family:var(--mono);font-size:11px;color:var(--tx2);letter-spac
   box-shadow:0 0 14px color-mix(in srgb, var(--ac) 40%, transparent);
 }
 
-/* ---------- Klaviatur ---------- */
+/* ---------- Klaviatur (rollendes Band C0–B8) ---------- */
 .kbd{
-  position:relative;
   background:var(--panel);
   border:1px solid var(--line);
   border-radius:12px;
   padding:8px;
   height:156px;
 }
-.whites{display:flex;gap:2px;height:100%}
+.kscroll{
+  height:100%;
+  overflow-x:auto;overflow-y:hidden;
+  touch-action:pan-x;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+  cursor:grab;
+}
+.kscroll::-webkit-scrollbar{display:none}
+.kstrip{position:relative;height:100%}
 .wkey{
-  flex:1;position:relative;
+  position:absolute;top:0;bottom:0;width:36px;
   border:none;border-radius:0 0 5px 5px;
   background:linear-gradient(#DDE7D8, #B9C7B3);
   cursor:pointer;
@@ -205,18 +261,17 @@ header .meta{font-family:var(--mono);font-size:11px;color:var(--tx2);letter-spac
   display:flex;align-items:flex-end;justify-content:center;
   padding-bottom:8px;
 }
+.wkey.c{font-weight:700;color:#0A0C09}
 .wkey.on{
   background:linear-gradient(var(--ac), var(--ac-dark));
   color:var(--on-ac);font-weight:700;
   box-shadow:0 0 18px color-mix(in srgb, var(--ac) 55%, transparent);
 }
-.blacks{position:absolute;left:8px;right:8px;top:8px;height:60%;pointer-events:none}
 .bkey{
-  position:absolute;top:0;width:24px;height:100%;
-  margin-left:-12px;
+  position:absolute;top:0;width:22px;height:60%;z-index:2;
   border:1px solid #000;border-radius:0 0 4px 4px;
   background:linear-gradient(#1A2418, #050705);
-  cursor:pointer;pointer-events:auto;
+  cursor:pointer;
 }
 .bkey.on{
   background:linear-gradient(var(--ac), var(--ac-dark));
@@ -224,32 +279,7 @@ header .meta{font-family:var(--mono);font-size:11px;color:var(--tx2);letter-spac
   box-shadow:0 0 14px color-mix(in srgb, var(--ac) 55%, transparent);
 }
 
-/* ---------- Wellenform-Wähler ---------- */
-.waves{display:flex;flex-direction:column;gap:8px}
-.wrow{
-  display:flex;align-items:center;gap:12px;
-  background:var(--panel);
-  border:1px solid var(--line);border-radius:6px;
-  padding:6px 14px;
-  min-height:40px;
-}
-.wrow .glyph{flex:0 0 34px;color:var(--tx2);display:flex}
-.wrow .name{
-  flex:0 0 84px;
-  font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:1px;color:var(--tx);
-}
-.wrow .pct{
-  flex:0 0 44px;text-align:right;
-  font-family:var(--mono);font-size:14px;font-weight:700;color:var(--tx);
-  font-variant-numeric:tabular-nums;
-}
-.wrow.hot{
-  border-color:var(--ac);
-  box-shadow:0 0 12px color-mix(in srgb, var(--ac) 18%, transparent);
-}
-.wrow.hot .glyph,.wrow.hot .pct{color:var(--ac)}
-
-/* ---------- Slider ---------- */
+/* ---------- Master-Regler ---------- */
 input[type=range]{
   -webkit-appearance:none;appearance:none;
   flex:1;height:24px;background:transparent;cursor:pointer;min-width:0;
@@ -267,9 +297,6 @@ input[type=range]::-moz-range-track{
   background:linear-gradient(to right, var(--fill,var(--tx2)) var(--p,50%), var(--grid) var(--p,50%));
 }
 input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparent;border:none}
-.wrow.hot input[type=range]{--fill:var(--ac)}
-
-/* Master-Regler: sichtbarer heller Knopf */
 .masterrow{display:flex;align-items:center;gap:12px;padding:0 2px}
 .masterrow .lbl{
   flex:0 0 auto;
@@ -295,16 +322,17 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
 /* ---------- Fusszeile (fix, nicht Teil des scrollenden Inhalts) ---------- */
 .footer{
   flex-shrink:0;
+  display:flex;gap:10px;
   padding:12px 20px 14px;
   border-top:1px solid var(--line);
 }
-#power{
-  width:100%;
+#power,#mic{
   height:64px;
   border-radius:10px;
   font-family:var(--mono);font-size:17px;font-weight:700;letter-spacing:4px;
   cursor:pointer;
 }
+#power{flex:1}
 #power.running{
   background:transparent;
   border:2px solid var(--ac);
@@ -318,6 +346,19 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
   color:var(--on-ac);
   box-shadow:0 0 22px color-mix(in srgb, var(--ac) 35%, transparent);
 }
+#mic{
+  flex:0 0 112px;
+  font-size:15px;letter-spacing:3px;
+  background:transparent;
+  border:2px solid var(--line);
+  color:var(--tx2);
+}
+#mic.on{
+  border-color:var(--ac);
+  color:var(--ac);
+  box-shadow:0 0 18px color-mix(in srgb, var(--ac) 25%, transparent),
+             inset 0 0 14px color-mix(in srgb, var(--ac) 12%, transparent);
+}
 </style>
 </head>
 <body>
@@ -330,7 +371,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
 
   <header>
     <h1>HEIM.TONE.LAB</h1>
-    <span class="meta">v1.1 · REC</span>
+    <span class="meta">v2.0 · REC</span>
   </header>
 
   <div class="content">
@@ -340,11 +381,25 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
         <span class="note" id="noteName">A3</span>
         <span class="freq"><span id="freqVal">220</span><small>Hz</small></span>
       </div>
-      <canvas class="trace" id="trace"></canvas>
       <div class="scope-foot">
         <span><span class="lbl">SOLL</span><span class="soll" id="sollVal">220,00 Hz</span></span>
         <span><span class="lbl">Δ</span><span class="delta" id="deltaVal">+0 ct</span></span>
       </div>
+    </section>
+
+    <section class="mic off" id="micPanel">
+      <div class="mic-head"><span>STIMME</span><span class="state" id="micState">AUS</span></div>
+      <div class="readout">
+        <span class="note" id="sungNote">--</span>
+        <span class="freq"><span id="sungHz">--</span><small>Hz</small></span>
+      </div>
+      <div class="meter" id="meter">
+        <div class="zone" id="zone"></div>
+        <div class="mid"></div>
+        <div class="needle" id="needle"></div>
+      </div>
+      <div class="meter-scale"><span>−50</span><span class="ct" id="sungCt"></span><span>+50 ct</span></div>
+      <div class="cmp" id="cmp"></div>
     </section>
 
     <section class="freqrow">
@@ -358,11 +413,8 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
     </section>
 
     <section class="kbd">
-      <div class="whites" id="whites"></div>
-      <div class="blacks" id="blacks"></div>
+      <div class="kscroll" id="kscroll"><div class="kstrip" id="kstrip"></div></div>
     </section>
-
-    <section class="waves" id="waves"></section>
 
     <section class="masterrow">
       <span class="lbl">MASTER</span>
@@ -374,6 +426,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
 
   <div class="footer">
     <button id="power" class="stopped">▶&nbsp;&nbsp;START</button>
+    <button id="mic">MIC</button>
   </div>
 </div>
 
@@ -383,6 +436,14 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
 /* ================= Konfiguration ================= */
 const A4 = 440;            // Kammerton, konfigurierbar
 const N_HARM = 64;         // Harmonische für PeriodicWave
+/* Klangfarbe seit v2.0 fest (bewährte Standardmischung, kein Regler mehr).
+   Werte sind Anteile; sie werden durch ihre Summe geteilt. */
+const MIX = { sine: 80, tri: 20, saw: 0 };
+const HIT_CT = 10;         // Toleranz «getroffen» in Cent (±)
+const MIC_FMIN = 60;       // tiefste erkannte Stimmfrequenz (Hz) — reicht unter E2 (Bass)
+const MIC_FMAX = 1500;     // höchste erkannte Stimmfrequenz (Hz)
+const MIC_RMS_MIN = 0.01;  // darunter gilt das Signal als Stille
+const MIC_HOLD_MS = 400;   // so lange bleibt der letzte Wert nach Verstummen stehen
 
 /* ================= Zustand =================
    Die Frequenz ist die einzige Quelle der Wahrheit.
@@ -390,25 +451,23 @@ const N_HARM = 64;         // Harmonische für PeriodicWave
    setzen beide nur state.freq; alles andere wird abgeleitet. */
 const state = {
   freq: 220,               // Hz (A3)
-  viewOct: 3,              // sichtbare Klaviatur-Oktave (folgt der Frequenz)
-  weights: { sine: 80, tri: 20, saw: 0 },
-  hotWave: 'sine',         // zuletzt angefasste Wellenform-Zeile
   master: 100,
   playing: false,
+  micOn: false,
 };
 
 const NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
-const WHITE_OFFSETS = [0,2,4,5,7,9,11,12,14];        // C D E F G A B C' D'
-const BLACK_OFFSETS = [1,3,6,8,10,13];               // C# D# F# G# A# C#'
-const BLACK_POS = [11.11,22.22,44.44,55.55,66.66,88.88]; // % der Breite
 
 /* ================= Formatierung (dt. Komma) ================= */
 const de = (x, d) => x.toFixed(d).replace('.', ',');
+const signed = (x, txt) => (x >= 0 ? '+' : '−') + txt;
 
 /* ================= Tonhöhen-Mathematik ================= */
 const freqOfMidi = m => A4 * Math.pow(2, (m - 69) / 12);
 const midiOfFreq = f => 69 + 12 * Math.log2(f / A4);
+const noteName = m => NAMES[((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1);
 const MIDI_MIN = 12;                                 // C0
+const MIDI_MAX = 119;                                // B8 (Ende der Klaviatur)
 const FREQ_MIN = freqOfMidi(MIDI_MIN);               // ≈ 16,35 Hz
 const FREQ_MAX = 20000;                              // Hörgrenze
 const clampFreq = f => Math.min(FREQ_MAX, Math.max(FREQ_MIN, f));
@@ -424,76 +483,74 @@ for (let o = 0; o <= 8; o++){
   b.textContent = o;
   b.addEventListener('pointerdown', () => {
     const m = Math.round(midiOfFreq(state.freq));
-    state.viewOct = o;
-    state.freq = freqOfMidi(12 * (o + 1) + (m % 12));  // Notenklasse behalten, Oktave wechseln
-    onPitchChange();
+    state.freq = freqOfMidi(12 * (o + 1) + (((m % 12) + 12) % 12));  // Notenklasse behalten, Oktave wechseln
+    onPitchChange('oct');
   });
   $('octcells').appendChild(b);
   octEls.push(b);
 }
 
-/* Klaviatur */
-const whiteEls = [], blackEls = [];
-WHITE_OFFSETS.forEach(off => {
+/* Klaviatur: ein durchgehendes Band C0–B8, seitlich verschiebbar.
+   Töne werden per 'click' ausgelöst (= beim Loslassen): So unterscheidet der
+   Browser selbst zwischen Antippen (Ton) und Wischen (Band rollt). */
+const KEY_W = 36, KEY_GAP = 2, KEY_P = KEY_W + KEY_GAP, BKEY_W = 22;
+const kscroll = $('kscroll'), kstrip = $('kstrip');
+const keyEls = {};
+let whiteCount = 0;
+for (let m = MIDI_MIN; m <= MIDI_MAX; m++){
   const k = document.createElement('button');
-  k.className = 'wkey';
-  k.addEventListener('pointerdown', () => {
-    state.freq = freqOfMidi(12 * (state.viewOct + 1) + off);
-    onPitchChange();
-  });
-  $('whites').appendChild(k);
-  whiteEls.push(k);
-});
-BLACK_OFFSETS.forEach((off, i) => {
-  const k = document.createElement('button');
-  k.className = 'bkey';
-  k.style.left = BLACK_POS[i] + '%';
-  k.addEventListener('pointerdown', () => {
-    state.freq = freqOfMidi(12 * (state.viewOct + 1) + off);
-    onPitchChange();
-  });
-  $('blacks').appendChild(k);
-  blackEls.push(k);
-});
-
-/* Wellenform-Zeilen */
-const GLYPHS = {
-  sine: '<svg width="34" height="18" viewBox="0 0 34 18" fill="none"><path d="M1 9 Q 5.5 1, 9.5 9 T 18 9 T 26.5 9 T 33 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
-  tri:  '<svg width="34" height="18" viewBox="0 0 34 18" fill="none"><path d="M1 13 L 6 5 L 12 13 L 18 5 L 24 13 L 30 5 L 33 9" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>',
-  saw:  '<svg width="34" height="18" viewBox="0 0 34 18" fill="none"><path d="M1 13 L 11 5 L 11 13 L 21 5 L 21 13 L 31 5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>',
-};
-const WAVE_DEFS = [
-  { key: 'sine', label: 'SINUS' },
-  { key: 'tri',  label: 'DREIECK' },
-  { key: 'saw',  label: 'SÄGEZAHN' },
-];
-const waveRows = {};
-
-/* Auswahl direkt umschalten — ohne vollen Render, damit die
-   native Slider-Bedienung nicht unterbrochen wird. */
-function setHotWave(key){
-  if (state.hotWave === key) return;
-  state.hotWave = key;
-  WAVE_DEFS.forEach(w => waveRows[w.key].classList.toggle('hot', w.key === key));
+  k.dataset.midi = m;
+  if (NAMES[m % 12].length === 1){
+    k.className = 'wkey' + (m % 12 === 0 ? ' c' : '');
+    k.style.left = (whiteCount * KEY_P) + 'px';
+    k.textContent = noteName(m);
+    whiteCount++;
+  } else {
+    k.className = 'bkey';
+    k.style.left = (whiteCount * KEY_P - KEY_GAP / 2 - BKEY_W / 2) + 'px';
+  }
+  keyEls[m] = k;
+  kstrip.appendChild(k);
 }
-WAVE_DEFS.forEach(w => {
-  const row = document.createElement('div');
-  row.className = 'wrow';
-  row.innerHTML =
-    '<span class="glyph">' + GLYPHS[w.key] + '</span>' +
-    '<span class="name">' + w.label + '</span>' +
-    '<input type="range" min="0" max="100" value="' + state.weights[w.key] + '">' +
-    '<span class="pct"></span>';
-  const slider = row.querySelector('input');
-  row.addEventListener('pointerdown', () => setHotWave(w.key));
-  slider.addEventListener('input', () => {
-    setHotWave(w.key);
-    state.weights[w.key] = +slider.value;
-    onMixChange();
-  });
-  $('waves').appendChild(row);
-  waveRows[w.key] = row;
+kstrip.style.width = (whiteCount * KEY_P - KEY_GAP) + 'px';
+
+/* Maus (Mac): Band per Ziehen verschieben — auf dem iPhone rollt es nativ. */
+let mouseDrag = null, dragMoved = false;
+kscroll.addEventListener('pointerdown', e => {
+  dragMoved = false;
+  if (e.pointerType !== 'mouse') return;
+  mouseDrag = { x: e.clientX, s: kscroll.scrollLeft };
 });
+window.addEventListener('pointermove', e => {
+  if (!mouseDrag) return;
+  const dx = e.clientX - mouseDrag.x;
+  if (Math.abs(dx) > 4) dragMoved = true;
+  if (dragMoved) kscroll.scrollLeft = mouseDrag.s - dx;
+});
+window.addEventListener('pointerup', () => { mouseDrag = null; });
+
+kstrip.addEventListener('click', e => {
+  if (dragMoved){ dragMoved = false; return; }   // war ein Ziehen, kein Tippen
+  const k = e.target.closest('button');
+  if (!k) return;
+  state.freq = freqOfMidi(+k.dataset.midi);
+  onPitchChange('key');
+});
+
+/* Band so verschieben, dass die Oktave o links beginnt */
+function scrollToOctave(o, smooth){
+  const c = keyEls[12 * (Math.min(8, Math.max(0, o)) + 1)];
+  kscroll.scrollTo({ left: c.offsetLeft, behavior: smooth ? 'smooth' : 'auto' });
+}
+/* Nur verschieben, wenn die aktive Taste nicht sichtbar ist */
+function ensureKeyVisible(m, smooth){
+  const k = keyEls[m];
+  if (!k) return;
+  const l = k.offsetLeft, r = l + k.offsetWidth;
+  const vl = kscroll.scrollLeft, vr = vl + kscroll.clientWidth;
+  if (l >= vl && r <= vr) return;
+  scrollToOctave(Math.floor(m / 12) - 1, smooth);
+}
 
 /* ================= Audio ================= */
 let ctx = null, osc = null, gate = null, masterGain = null;
@@ -512,10 +569,10 @@ function masterLevel(){
   return Math.pow(state.master / 100, 2) * 0.9;
 }
 
+/* Klangfarbe: gewichtete Fourier-Summe aus Sinus/Dreieck/Sägezahn (fest: MIX) */
 function buildWave(){
-  const { sine, tri, saw } = state.weights;
+  const { sine, tri, saw } = MIX;
   const total = sine + tri + saw;
-  if (total === 0) return null;
   const real = new Float32Array(N_HARM + 1);
   const imag = new Float32Array(N_HARM + 1);
   for (let n = 1; n <= N_HARM; n++){
@@ -528,26 +585,15 @@ function buildWave(){
   return ctx.createPeriodicWave(real, imag);
 }
 
-function applyWave(){
-  if (!ctx || !osc) return;
-  const wave = buildWave();
-  const t = ctx.currentTime;
-  if (wave){
-    osc.setPeriodicWave(wave);
-    gate.gain.setTargetAtTime(1, t, 0.02);
-  } else {
-    gate.gain.setTargetAtTime(0, t, 0.02); // Mischung 0 % → Stille
-  }
-}
-
 function start(){
   ensureAudio();
   ctx.resume();
   osc = ctx.createOscillator();
   osc.frequency.value = state.freq;
+  osc.setPeriodicWave(buildWave());
   osc.connect(gate);
-  applyWave();
   osc.start();
+  gate.gain.setTargetAtTime(1, ctx.currentTime, 0.02);
   state.playing = true;
 }
 
@@ -561,14 +607,131 @@ function stop(){
   state.playing = false;
 }
 
-/* ================= Events / Rendering ================= */
-function onPitchChange(){
-  if (osc) osc.frequency.setTargetAtTime(state.freq, ctx.currentTime, 0.01);
+/* ================= Mikrofon: Tonhöhe der Stimme (YIN) ================= */
+let micStream = null, micSrc = null, analyser = null, micSink = null;
+let micTimer = null, micBuf = null, yinBuf = null;
+let pitchHist = [], sungMidi = null, lastHeard = 0, micMsg = '';
+
+/* YIN-Algorithmus (de Cheveigné & Kawahara 2002): findet die Periode
+   über die normierte Differenzfunktion — robust gegen Oktavfehler. */
+function detectPitch(buf, sr){
+  let rms = 0;
+  for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / buf.length);
+  if (rms < MIC_RMS_MIN) return null;
+
+  const tauMin = Math.max(2, Math.floor(sr / MIC_FMAX));
+  const tauMax = Math.min(Math.floor(sr / MIC_FMIN), Math.floor(buf.length / 2));
+  const W = Math.min(2048, buf.length - tauMax);   // Fenster ≥ 2 Perioden des tiefsten Tons
+  if (!yinBuf || yinBuf.length < tauMax + 2) yinBuf = new Float32Array(tauMax + 2);
+  const d = yinBuf;
+
+  /* Differenzfunktion, kumulativ normiert — schrittweise berechnet und
+     abgebrochen, sobald die erste Mulde unter der Schwelle gefunden ist
+     (spart bei mittleren/hohen Tönen den Grossteil der Rechenzeit). */
+  const TH = 0.15;
+  const diff = t => { let s = 0; for (let i = 0; i < W; i++){ const x = buf[i] - buf[i + t]; s += x * x; } return s; };
+  d[0] = 1;
+  let run = 0, tau = -1;
+  for (let t = 1; t <= tauMax; t++){
+    const raw = diff(t);
+    run += raw;
+    d[t] = run > 0 ? raw * t / run : 1;
+    if (tau < 0 && t > tauMin && d[t - 1] < TH && d[t] >= d[t - 1]){
+      tau = t - 1;   // Talsohle erreicht
+      break;
+    }
+  }
+  if (tau >= tauMax - 1) tau = -1;
+  if (tau < 0) return null;
+  /* Parabolische Interpolation für Cent-Genauigkeit */
+  const a = d[tau - 1], b = d[tau], c = d[tau + 1];
+  const den = a - 2 * b + c;
+  const shift = den !== 0 ? 0.5 * (a - c) / den : 0;
+  const f = sr / (tau + shift);
+  return (f >= MIC_FMIN && f <= MIC_FMAX) ? f : null;
+}
+
+function micTick(){
+  if (!analyser) return;
+  analyser.getFloatTimeDomainData(micBuf);
+  const f = detectPitch(micBuf, ctx.sampleRate);
+  const now = performance.now();
+  if (f){
+    pitchHist.push(midiOfFreq(f));
+    if (pitchHist.length > 5) pitchHist.shift();
+    /* Median der letzten Messungen: glättet Vibrato und Ausreisser */
+    const s = pitchHist.slice().sort((x, y) => x - y);
+    sungMidi = s[Math.floor(s.length / 2)];
+    lastHeard = now;
+  } else if (now - lastHeard > MIC_HOLD_MS){
+    sungMidi = null;
+    pitchHist = [];
+  }
+  renderMic();
+}
+
+async function micStart(){
+  micMsg = '';
+  ensureAudio();
+  ctx.resume();   // muss im Tipp-Ereignis passieren (iOS)
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    micMsg = 'Mikrofon nur über https verfügbar.';
+    renderMic();
+    return;
+  }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e) {}
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+    });
+  } catch (err){
+    micMsg = err && err.name === 'NotAllowedError'
+      ? 'Zugriff verweigert – in Safari unter «aA» erlauben.'
+      : 'Mikrofon nicht verfügbar.';
+    renderMic();
+    return;
+  }
+  micSrc = ctx.createMediaStreamSource(micStream);
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 4096;              // ≈ 85 ms Fenster — nötig für tiefe Bass-Töne
+  micSink = ctx.createGain();
+  micSink.gain.value = 0;               // stumm: Analyse muss angeschlossen sein, aber nie hörbar
+  micSrc.connect(analyser);
+  analyser.connect(micSink).connect(ctx.destination);
+  micBuf = new Float32Array(analyser.fftSize);
+  pitchHist = []; sungMidi = null; lastHeard = 0;
+  state.micOn = true;
+  micTimer = setInterval(micTick, 50);  // 20 Messungen pro Sekunde
   render();
 }
-function onMixChange(){
-  applyWave();
+
+function micStop(){
+  if (micTimer){ clearInterval(micTimer); micTimer = null; }
+  if (micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (micSrc){ micSrc.disconnect(); micSrc = null; }
+  if (analyser){ analyser.disconnect(); analyser = null; }
+  if (micSink){ micSink.disconnect(); micSink = null; }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e) {}
+  state.micOn = false;
+  sungMidi = null; pitchHist = [];
   render();
+}
+
+/* Datenschutz: Mikrofon aus, sobald die App in den Hintergrund geht */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && state.micOn) micStop();
+});
+
+/* ================= Events / Rendering ================= */
+function onPitchChange(src){
+  if (osc) osc.frequency.setTargetAtTime(state.freq, ctx.currentTime, 0.01);
+  render();
+  /* Klaviatur nachführen — nie bei Tippen auf die Klaviatur selbst
+     (sonst springt das Band unter dem Finger weg) */
+  const m = Math.round(midiOfFreq(state.freq));
+  if (src === 'oct') scrollToOctave(Math.floor(m / 12) - 1, true);
+  else if (src !== 'key') ensureKeyVisible(m, src !== 'dial');
 }
 
 $('master').addEventListener('input', e => {
@@ -582,6 +745,11 @@ $('power').addEventListener('click', () => {
   render();
 });
 
+$('mic').addEventListener('click', () => {
+  if (state.micOn) micStop(); else micStart();
+});
+
+let activeKey = null;
 function render(){
   /* Alles aus state.freq ableiten: nächste Note = SOLL, Abstand = Δ ct */
   const f = state.freq;
@@ -589,54 +757,102 @@ function render(){
   const soll = freqOfMidi(m);
   const cents = Math.round(1200 * Math.log2(f / soll));
   const noteOct = Math.floor(m / 12) - 1;
-  const s = m % 12;
 
   /* Display */
-  $('noteName').textContent = NAMES[s] + noteOct;
+  $('noteName').textContent = noteName(m);
   $('freqVal').textContent = Math.abs(f - Math.round(f)) < 0.05 ? String(Math.round(f)) : de(f, 1);
   $('sollVal').textContent = de(soll, 2) + ' Hz';
-  $('deltaVal').textContent = (cents >= 0 ? '+' : '−') + Math.abs(cents) + ' ct';
+  $('deltaVal').textContent = signed(cents, Math.abs(cents) + ' ct');
 
-  /* Live-Nachführung: Klaviaturansicht folgt der Frequenz.
-     C/C#/D der Folgeoktave sind auf der aktuellen Ansicht noch sichtbar. */
-  if (!(noteOct === state.viewOct || (noteOct === state.viewOct + 1 && s <= 2))){
-    state.viewOct = Math.min(8, Math.max(0, noteOct));
+  /* Oktaven: Oktave des aktuellen Tons */
+  octEls.forEach((b, o) => b.classList.toggle('on', o === noteOct));
+
+  /* Aktive Taste */
+  const k = keyEls[m] || null;
+  if (activeKey !== k){
+    if (activeKey) activeKey.classList.remove('on');
+    if (k) k.classList.add('on');
+    activeKey = k;
   }
-  const activeOff = m - 12 * (state.viewOct + 1);
-
-  /* Oktaven */
-  octEls.forEach((b, o) => b.classList.toggle('on', o === state.viewOct));
-
-  /* Tasten */
-  WHITE_OFFSETS.forEach((off, i) => {
-    whiteEls[i].textContent = NAMES[off % 12] + (state.viewOct + Math.floor(off / 12));
-    whiteEls[i].classList.toggle('on', off === activeOff);
-  });
-  BLACK_OFFSETS.forEach((off, i) => blackEls[i].classList.toggle('on', off === activeOff));
-
-  /* Wellenform-Zeilen: zuletzt angefasste Zeile = Akzent */
-  WAVE_DEFS.forEach(w => {
-    const row = waveRows[w.key];
-    const v = state.weights[w.key];
-    row.classList.toggle('hot', w.key === state.hotWave);
-    row.querySelector('.pct').textContent = v + '%';
-    const s = row.querySelector('input');
-    if (+s.value !== v) s.value = v;   // laufenden Drag nie durch Rückschreiben stören
-    s.style.setProperty('--p', v + '%');
-  });
 
   /* Master */
   $('masterPct').textContent = state.master + '%';
   if (+$('master').value !== state.master) $('master').value = state.master; // laufenden Drag nie durch Rückschreiben stören
   $('master').style.setProperty('--p', state.master + '%');
 
-  /* Power-Button */
+  /* Power- und MIC-Knopf */
   const p = $('power');
   p.className = state.playing ? 'running' : 'stopped';
   p.innerHTML = state.playing ? '■&nbsp;&nbsp;STOP' : '▶&nbsp;&nbsp;START';
+  const mb = $('mic');
+  mb.className = state.micOn ? 'on' : '';
+  mb.innerHTML = state.micOn ? '●&nbsp;MIC' : 'MIC';
 
-  drawTrace();
+  renderMic();
   drawDial();
+}
+
+/* Grüne Zone (±HIT_CT) auf der ±50-ct-Skala */
+$('zone').style.left = (50 - HIT_CT) + '%';
+$('zone').style.width = (2 * HIT_CT) + '%';
+
+function renderMic(){
+  const panel = $('micPanel'), meter = $('meter'), cmp = $('cmp');
+  panel.classList.toggle('off', !state.micOn);
+  panel.classList.toggle('idle', state.micOn && sungMidi === null);
+  cmp.classList.remove('hit');
+
+  if (!state.micOn){
+    $('micState').textContent = 'AUS';
+    $('sungNote').textContent = '--';
+    $('sungHz').textContent = '--';
+    $('sungCt').textContent = '';
+    meter.classList.remove('live');
+    cmp.textContent = micMsg || 'MIC antippen, um zuzuhören.';
+    return;
+  }
+
+  $('micState').textContent = state.playing ? 'KOPFHÖRER EMPFOHLEN' : 'HÖRT ZU';
+
+  if (sungMidi === null){
+    $('sungNote').textContent = '--';
+    $('sungHz').textContent = '--';
+    $('sungCt').textContent = '';
+    meter.classList.remove('live');
+    cmp.textContent = state.playing ? 'Singe den Ton …' : 'Singe einen Ton …';
+    return;
+  }
+
+  /* Gesungener Ton wie beim Stimmgerät: nächste Note + Cent-Abweichung */
+  const sm = Math.round(sungMidi);
+  const ct = Math.round((sungMidi - sm) * 100);
+  const sf = freqOfMidi(sungMidi);
+  $('sungNote').textContent = noteName(sm);
+  $('sungHz').textContent = de(sf, 1);
+  $('sungCt').textContent = ct === 0 ? '±0 ct' : signed(ct, Math.abs(ct) + ' ct');
+  $('needle').style.left = (50 + Math.max(-50, Math.min(50, ct))) + '%';
+  meter.classList.add('live');
+
+  if (!state.playing){
+    cmp.innerHTML = '<span class="lbl">ZIEL</span>– (START für Vergleich)';
+    return;
+  }
+
+  /* Vergleich mit dem gespielten Ton. Andere Oktave (z.B. Bass eine Oktave
+     tiefer) wird erkannt und separat ausgewiesen. */
+  const d = 1200 * Math.log2(sf / state.freq);
+  const oct = Math.round(d / 1200);
+  const dm = d - oct * 1200;
+  const amount = Math.abs(dm) < 100
+    ? Math.round(Math.abs(dm)) + ' ct'
+    : de(Math.abs(dm) / 100, 1) + ' HT';
+  let res;
+  if (Math.abs(dm) <= HIT_CT){ res = '● GETROFFEN'; cmp.classList.add('hit'); }
+  else if (dm < 0) res = '▼ ZU TIEF −' + amount;
+  else res = '▲ ZU HOCH +' + amount;
+  const octTxt = oct === 0 ? '' : ' · OKT ' + (oct < 0 ? '−' : '+') + Math.abs(oct);
+  const target = noteName(Math.round(midiOfFreq(state.freq)));
+  cmp.innerHTML = '<span class="lbl">ZIEL ' + target + '</span><span class="res">' + res + '</span>' + octTxt;
 }
 
 /* ================= Frequenz-Scrollrad ================= */
@@ -699,7 +915,7 @@ function drawDial(){
 
 function nudgeCents(dc){
   state.freq = clampFreq(state.freq * Math.pow(2, dc / 1200));
-  onPitchChange();
+  onPitchChange('dial');
 }
 
 let dialDrag = false, dialX = 0;
@@ -720,7 +936,7 @@ dial.addEventListener('wheel', e => {
 }, { passive: false });
 dial.addEventListener('dblclick', () => {
   state.freq = freqOfMidi(Math.round(midiOfFreq(state.freq)));  // auf Note einrasten
-  onPitchChange();
+  onPitchChange('dial');
 });
 
 /* ================= Frequenz-Direkteingabe (Antippen aufs Display) =================
@@ -728,7 +944,7 @@ dial.addEventListener('dblclick', () => {
    (Doppeltipp ist dort für Zoom reserviert und wird bei abgeschaltetem Zoom
    verschluckt). Ein einfacher Tap/Klick feuert auf iPhone und Mac zuverlässig,
    und focus() innerhalb des Klick-Handlers öffnet die iOS-Tastatur. */
-const freqBox = document.querySelector('.freq');
+const freqBox = document.querySelector('.scope .freq');
 let freqEditing = false;
 freqBox.addEventListener('click', () => {
   if (freqEditing) return;
@@ -756,7 +972,7 @@ freqBox.addEventListener('click', () => {
     inp.remove();
     label.style.display = '';
     freqEditing = false;
-    onPitchChange();   // Anzeige neu ableiten (Note, SOLL, Cent, Rad …)
+    onPitchChange('input');   // Anzeige neu ableiten (Note, SOLL, Cent, Rad, Klaviatur …)
   };
 
   inp.addEventListener('keydown', e => {
@@ -766,65 +982,7 @@ freqBox.addEventListener('click', () => {
   inp.addEventListener('blur', () => finish(true));
 });
 
-/* ================= Wellen-Trace ================= */
-const canvas = $('trace');
-const cx2 = canvas.getContext('2d');
-let phase = 0, rafId = null;
-
-function mixSample(t){
-  const { sine, tri, saw } = state.weights;
-  const total = sine + tri + saw;
-  if (total === 0) return 0;
-  const x = t - Math.floor(t);
-  const s = Math.sin(2 * Math.PI * x);
-  const tr = (2 / Math.PI) * Math.asin(Math.sin(2 * Math.PI * x));
-  const sw = 2 * (x - Math.floor(x + 0.5));
-  return (sine * s + tri * tr + saw * sw) / total;
-}
-
-function drawTrace(){
-  const dpr = window.devicePixelRatio || 1;
-  const w = canvas.clientWidth, h = canvas.clientHeight;
-  if (!w) return;
-  if (canvas.width !== w * dpr){ canvas.width = w * dpr; canvas.height = h * dpr; }
-  cx2.setTransform(dpr, 0, 0, dpr, 0, 0);
-  cx2.clearRect(0, 0, w, h);
-
-  /* Peak der Mischung bestimmen, damit die Kurve das Fenster füllt */
-  let peak = 0;
-  for (let i = 0; i < 128; i++) peak = Math.max(peak, Math.abs(mixSample(i / 128)));
-  if (peak < 1e-6) peak = 1;
-
-  const cycles = 4, mid = h / 2, amp = (h / 2 - 6) / peak;
-  const ac = getComputedStyle(document.documentElement).getPropertyValue('--ac').trim();
-
-  cx2.beginPath();
-  for (let px = 0; px <= w; px++){
-    const t = (px / w) * cycles + phase;
-    const y = mid - mixSample(t) * amp;
-    px === 0 ? cx2.moveTo(px, y) : cx2.lineTo(px, y);
-  }
-  cx2.strokeStyle = ac;
-  cx2.globalAlpha = state.playing ? 0.85 : 0.35;
-  cx2.lineWidth = 1.8;
-  cx2.shadowColor = ac;
-  cx2.shadowBlur = state.playing ? 8 : 0;
-  cx2.stroke();
-  cx2.globalAlpha = 1;
-  cx2.shadowBlur = 0;
-
-  if (state.playing){
-    if (!rafId) rafId = requestAnimationFrame(tick);
-  } else if (rafId){
-    cancelAnimationFrame(rafId); rafId = null;
-  }
-}
-function tick(){
-  rafId = null;
-  phase = (phase + 0.012) % 1;
-  drawTrace();
-}
-window.addEventListener('resize', () => { drawTrace(); drawDial(); });
+window.addEventListener('resize', drawDial);
 
 /* ================= Uhr ================= */
 function clock(){
@@ -835,6 +993,7 @@ clock();
 setInterval(clock, 15000);
 
 render();
+scrollToOctave(Math.floor(Math.round(midiOfFreq(state.freq)) / 12) - 1, false);
 </script>
 </body>
 </html>
