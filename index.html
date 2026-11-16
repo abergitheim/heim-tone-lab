@@ -371,7 +371,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:transparen
 
   <header>
     <h1>HEIM.TONE.LAB</h1>
-    <span class="meta">v2.0 · REC</span>
+    <span class="meta">v2.1 · REC</span>
   </header>
 
   <div class="content">
@@ -556,6 +556,7 @@ function ensureKeyVisible(m, smooth){
 let ctx = null, osc = null, gate = null, masterGain = null;
 
 function ensureAudio(){
+  if (ctx && ctx.state === 'closed') ctx = null;
   if (ctx) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   gate = ctx.createGain();
@@ -671,26 +672,37 @@ function micTick(){
   renderMic();
 }
 
+/* Mikrofon-Freigabe nur einmal pro Sitzung anfragen: Der Stream bleibt nach
+   dem Ausschalten von MIC offen und wird beim nächsten Einschalten wieder-
+   verwendet. Erst wenn die App in den Hintergrund geht, wird er freigegeben. */
+const micLive = () => micStream && micStream.getAudioTracks().some(t => t.readyState === 'live');
+
 async function micStart(){
   micMsg = '';
   ensureAudio();
   ctx.resume();   // muss im Tipp-Ereignis passieren (iOS)
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    micMsg = 'Mikrofon nur über https verfügbar.';
-    renderMic();
-    return;
-  }
-  try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e) {}
-  try {
-    micStream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
-    });
-  } catch (err){
-    micMsg = err && err.name === 'NotAllowedError'
-      ? 'Zugriff verweigert – in Safari unter «aA» erlauben.'
-      : 'Mikrofon nicht verfügbar.';
-    renderMic();
-    return;
+  if (!micLive()){
+    micStream = null;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      micMsg = 'Mikrofon nur über https verfügbar.';
+      renderMic();
+      return;
+    }
+    try { if (navigator.audioSession) navigator.audioSession.type = 'play-and-record'; } catch (e) {}
+    try {
+      /* Echounterdrückung bewusst AUS (seit v2.1): Sie drückte auf dem iPhone
+         den Referenzton im Kopfhörer weg, sobald man singt. Folge: Über den
+         Lautsprecher hört das Mikrofon den Ton mit → Kopfhörer verwenden. */
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      });
+    } catch (err){
+      micMsg = err && err.name === 'NotAllowedError'
+        ? 'Zugriff verweigert – in Safari unter «aA» erlauben.'
+        : 'Mikrofon nicht verfügbar.';
+      renderMic();
+      return;
+    }
   }
   micSrc = ctx.createMediaStreamSource(micStream);
   analyser = ctx.createAnalyser();
@@ -706,22 +718,37 @@ async function micStart(){
   render();
 }
 
-function micStop(){
+/* MIC aus: Messung stoppen, Stream aber offen lassen (keine neue Rückfrage).
+   release = true: Stream wirklich freigeben (App im Hintergrund). */
+function micStop(release){
   if (micTimer){ clearInterval(micTimer); micTimer = null; }
-  if (micStream){ micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   if (micSrc){ micSrc.disconnect(); micSrc = null; }
   if (analyser){ analyser.disconnect(); analyser = null; }
   if (micSink){ micSink.disconnect(); micSink = null; }
-  try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e) {}
+  if (release === true && micStream){
+    micStream.getTracks().forEach(t => t.stop());
+    micStream = null;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'auto'; } catch (e) {}
+  }
   state.micOn = false;
   sungMidi = null; pitchHist = [];
   render();
 }
 
-/* Datenschutz: Mikrofon aus, sobald die App in den Hintergrund geht */
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden && state.micOn) micStop();
-});
+/* App-Wechsel: iOS unterbricht Audio und Mikrofon im Hintergrund, und ein
+   unterbrochener AudioContext erholt sich oft nicht mehr. Deshalb beim
+   Verlassen alles sauber beenden und den AudioContext schliessen — beim
+   nächsten START/MIC entsteht ein frischer. */
+function suspendAll(){
+  if (state.micOn || micStream) micStop(true);
+  if (osc){ try { osc.stop(); } catch (e) {} osc = null; }
+  state.playing = false;
+  if (ctx){ try { ctx.close(); } catch (e) {} }
+  ctx = null; gate = null; masterGain = null;
+  render();
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) suspendAll(); });
+window.addEventListener('pagehide', suspendAll);
 
 /* ================= Events / Rendering ================= */
 function onPitchChange(src){
@@ -746,7 +773,7 @@ $('power').addEventListener('click', () => {
 });
 
 $('mic').addEventListener('click', () => {
-  if (state.micOn) micStop(); else micStart();
+  if (state.micOn) micStop(false); else micStart();
 });
 
 let activeKey = null;
